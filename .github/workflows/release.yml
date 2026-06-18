@@ -1,0 +1,59 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyinstaller Pillow pandas numpy matplotlib requests tkcalendar pandas_market_calendars
+
+      - name: Build OptionsView.exe
+        run: python build.py
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > notes.md << 'NOTES'
+          ## Download Options View
+
+          **Click `OptionsView.exe` in the Assets section below to download.**
+
+          No installer. No Python. No setup. Just download and run.
+
+          ---
+
+          ### How to run it (Windows)
+
+          1. Click **OptionsView.exe** in the Assets section below and save it anywhere — your Desktop is fine
+          2. Double-click **OptionsView.exe**
+          3. If Windows shows **"Windows protected your PC"** — click **More info**, then **Run anyway**
+             > This warning appears for all apps that aren't signed with a paid code certificate.
+             > It is safe to dismiss.
+          4. The app opens — green dates on the calendar have data. Click one, then **View Date**.
+
+          ---
+          *Auto-built from the latest commit on `master`.*
+          NOTES
+
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest dist/OptionsView.exe \
+            --title "Options View — Latest" \
+            --notes-file notes.md \
+            --latest \
+            --target ${{ github.sha }}

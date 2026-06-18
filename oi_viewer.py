@@ -37,7 +37,8 @@ from utils import (
 
 # ── paths and remote data ──────────────────────────────────────────────────────
 
-ROOT    = Path(__file__).parent   # still used for icon.png
+import sys as _sys
+ROOT = Path(_sys._MEIPASS) if getattr(_sys, "frozen", False) else Path(__file__).parent
 R2_BASE = "https://pub-4d5c916b8cb74ffb8c0abd7dfadb02cf.r2.dev"
 
 # ── display config ─────────────────────────────────────────────────────────────

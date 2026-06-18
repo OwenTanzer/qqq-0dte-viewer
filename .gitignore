@@ -4,3 +4,8 @@ __pycache__/
 .env
 .venv/
 venv/
+
+# PyInstaller build artifacts
+build/
+dist/
+icon.ico
