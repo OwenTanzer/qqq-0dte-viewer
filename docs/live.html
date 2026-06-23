@@ -527,12 +527,13 @@ function startCountdown() {
 
 // ── price strip ───────────────────────────────────────────────────────────────
 
-const MAIN_TICKERS = ['QQQ', 'USO', 'VIX', 'SMH', 'IGV'];
+const MAIN_TICKERS = ['QQQ', 'USO', 'VIX', 'SMH', 'IGV', 'JPY/USD'];
 const SMALL_TICKERS = ['BTC/USD', 'META', 'GOOGL', 'AMZN', 'TSLA'];
 let prevPrices = {};
 
 function fmtPrice(v, sym) {
   if (v == null) return '—';
+  if (sym === 'JPY/USD') return v > 0 ? '¥' + (1 / v).toFixed(2) : '—';
   if (sym === 'BTC/USD') return v > 1000 ? v.toLocaleString('en-US', {maximumFractionDigits: 0}) : v.toFixed(2);
   if (sym === 'VIX') return v.toFixed(2);
   return v.toFixed(2);

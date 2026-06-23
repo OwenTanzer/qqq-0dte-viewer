@@ -65,6 +65,7 @@ PRICE_TICKERS: dict[str, str] = {
     "VIX":    "$VIX.X",
     "SMH":    "SMH",
     "IGV":    "IGV",
+    "JPY/USD": "/6J:XCME",   # CME yen futures, quoted USD-per-JPY → invert for ¥/$ display
     "BTC/USD": "BTC/USD:CXERX",
     "META":   "META",
     "GOOGL":  "GOOGL",
