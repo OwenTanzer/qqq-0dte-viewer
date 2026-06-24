@@ -642,27 +642,30 @@ def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
              f"[ {_tier_labels.get(tier, tier)} ]",
              ha="center", color=TIER_COLORS.get(tier, FG), fontsize=12, fontweight="bold")
 
-    level_labels = ["< p25", "p25–p50", "p50–p75", "p75–p90", "> p90"]
+    level_labels = ["Low", "Moderate", "High", "Very High", "Extreme"]
     c_patches = [mpatches.Patch(facecolor=CALL_COLORS[i+1], edgecolor=BORDER,
                                 label=level_labels[i]) for i in range(5)]
     p_patches = [mpatches.Patch(facecolor=PUT_COLORS[i+1],  edgecolor=BORDER,
                                 label=level_labels[i]) for i in range(5)]
-    spacer    =  mpatches.Patch(facecolor=BG, edgecolor=BG, label="  ")
 
-    fig.legend(
-        handles=c_patches + [spacer] + p_patches,
-        loc="lower center",
-        ncol=11,
-        fontsize=8,
-        facecolor=PANEL,
-        edgecolor=BORDER,
-        labelcolor=FG,
-        framealpha=1.0,
-        bbox_to_anchor=(0.5, 0.0),
-        handlelength=1.2,
-        handletextpad=0.4,
-        columnspacing=0.6,
+    _leg_kw = dict(
+        ncol=5, fontsize=9, facecolor=PANEL, edgecolor=BORDER, labelcolor=FG,
+        framealpha=1.0, handlelength=2.0, handleheight=1.1,
+        handletextpad=0.5, columnspacing=0.8,
     )
+    leg_c = fig.legend(
+        handles=c_patches, title="CALLS", title_fontsize=9,
+        loc="lower left", bbox_to_anchor=(0.03, 0.01), **_leg_kw,
+    )
+    leg_c.get_title().set_color("#00cc55")
+    leg_c.get_title().set_fontweight("bold")
+
+    leg_p = fig.legend(
+        handles=p_patches, title="PUTS", title_fontsize=9,
+        loc="lower right", bbox_to_anchor=(0.97, 0.01), **_leg_kw,
+    )
+    leg_p.get_title().set_color("#ee3300")
+    leg_p.get_title().set_fontweight("bold")
 
     fig.canvas.draw_idle()
 
