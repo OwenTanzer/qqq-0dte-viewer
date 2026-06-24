@@ -959,7 +959,7 @@ class OIViewer(tk.Tk):
         _hdr = tk.Frame(sim_frame, bg=PANEL)
         _hdr.pack(fill=tk.X, padx=6, pady=(4, 1))
         tk.Label(_hdr, text="Similar Sessions", bg=PANEL, fg=FG,
-                 font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT)
+                 font=("Segoe UI", 11, "bold")).pack(side=tk.LEFT)
         self._sim_status = tk.Label(_hdr, text="Building index…", bg=PANEL,
                                     fg=DIM, font=("Segoe UI", 8))
         self._sim_status.pack(side=tk.RIGHT)
