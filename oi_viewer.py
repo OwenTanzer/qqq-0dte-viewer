@@ -1205,7 +1205,7 @@ class OIViewer(tk.Tk):
                         f"{sign}{row['pct']:.1f}%")
                 ylim = ax_daily.get_ylim()
                 tip_y = ylim[0] + (ylim[1] - ylim[0]) * 0.55
-                self._daily_tip.set_horizontalalignment("left")
+                self._daily_tip.set_horizontalalignment("right")
                 self._daily_tip.set_text(text)
                 self._daily_tip.set_position((xi, tip_y))
                 self._daily_tip.get_bbox_patch().set_edgecolor(pct_col)
@@ -1312,9 +1312,9 @@ class OIViewer(tk.Tk):
                 color=DIM, fontsize=8, transform=ax.transAxes)
         self._sim_popup_canvas.draw()
 
-        # Fixed position: right of sidebar, anchored to the top of the window
+        # Fixed y: always where the top (most-similar) row sits
         sx = self.winfo_rootx() + 322
-        sy = self.winfo_rooty() + 10
+        sy = self._sim_rows[0][0].winfo_rooty() - 30
         self._sim_popup.geometry(f"+{sx}+{sy}")
         self._sim_popup.deiconify()
         self._sim_popup.lift()
