@@ -989,8 +989,30 @@ class OIViewer(tk.Tk):
             move_lbl  = tk.Label(row, text="", bg=PANEL,
                                  font=("Segoe UI", 10, "bold"))
             move_lbl.pack(side=tk.RIGHT)
-            self._sim_rows.append((date_lbl, score_lbl, move_lbl))
+            self._sim_rows.append((row, date_lbl, score_lbl, move_lbl))
         tk.Frame(sim_frame, bg=PANEL, height=4).pack()
+
+        # Popup for intraday price series (shown on sim-row hover)
+        self._sim_popup = tk.Toplevel(self)
+        self._sim_popup.withdraw()
+        self._sim_popup.overrideredirect(True)
+        self._sim_popup.configure(bg=PANEL, relief="flat")
+        tk.Frame(self._sim_popup, bg=BORDER, height=1).pack(fill=tk.X)
+        _pop_inner = tk.Frame(self._sim_popup, bg=PANEL)
+        _pop_inner.pack(fill=tk.BOTH, expand=True)
+        self._sim_popup_date_lbl = tk.Label(
+            _pop_inner, text="", bg=PANEL, fg=FG,
+            font=("Segoe UI", 8, "bold"), anchor="w",
+        )
+        self._sim_popup_date_lbl.pack(side=tk.TOP, fill=tk.X, padx=6, pady=(4, 0))
+        self._sim_popup_fig = plt.Figure(figsize=(2.8, 1.35), facecolor=BG)
+        self._sim_popup_canvas = FigureCanvasTkAgg(self._sim_popup_fig, master=_pop_inner)
+        self._sim_popup_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        tk.Frame(self._sim_popup, bg=BORDER, height=1).pack(fill=tk.X)
+
+        self._sim_popup_target: date | None = None
+        self._intraday_cache: dict[str, object] = {}
+        self._sim_hide_job: str | None = None
 
         right = tk.Frame(self, bg=BG)
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True,
@@ -1241,7 +1263,7 @@ class OIViewer(tk.Tk):
             self._update_similar(matches)
 
     def _update_similar(self, matches: list[tuple[date, float]]):
-        for i, (date_lbl, score_lbl, move_lbl) in enumerate(self._sim_rows):
+        for i, (row, date_lbl, score_lbl, move_lbl) in enumerate(self._sim_rows):
             if i < len(matches):
                 cap_d, score = matches[i]
                 exp_d = next_trading_day(cap_d)
@@ -1257,11 +1279,82 @@ class OIViewer(tk.Tk):
                                     fg="#00cc55" if move >= 0 else "#ee3300")
                 else:
                     move_lbl.config(text="")
+                for w in (row, date_lbl, score_lbl, move_lbl):
+                    w.bind("<Enter>", lambda e, d=exp_d: self._show_sim_popup(e, d))
+                    w.bind("<Leave>", lambda e: self._schedule_hide_popup())
             else:
                 date_lbl.config(text="—")
                 score_lbl.config(text="")
                 move_lbl.config(text="")
                 date_lbl.unbind("<Button-1>")
+                for w in (row, date_lbl, score_lbl, move_lbl):
+                    w.unbind("<Enter>")
+                    w.unbind("<Leave>")
+
+    # ── similarity popup ────────────────────────────────────────────────────────
+
+    def _show_sim_popup(self, event: tk.Event, exp_d: date):
+        if self._sim_hide_job:
+            self.after_cancel(self._sim_hide_job)
+            self._sim_hide_job = None
+        self._sim_popup_target = exp_d
+
+        # Render loading placeholder immediately
+        self._sim_popup_date_lbl.config(text=f"{exp_d.strftime('%B')} {exp_d.day}")
+        self._sim_popup_fig.clear()
+        ax = self._sim_popup_fig.add_axes([0.06, 0.1, 0.91, 0.82])
+        ax.set_facecolor(BG)
+        for sp in ax.spines.values():
+            sp.set_edgecolor(BORDER)
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.text(0.5, 0.5, "Loading…", ha="center", va="center",
+                color=DIM, fontsize=8, transform=ax.transAxes)
+        self._sim_popup_canvas.draw()
+
+        # Position popup just to the right of the sidebar
+        sx = self.winfo_rootx() + 322
+        sy = event.widget.winfo_rooty() - 30
+        self._sim_popup.geometry(f"+{sx}+{sy}")
+        self._sim_popup.deiconify()
+        self._sim_popup.lift()
+
+        # Fetch intraday data in background
+        key = exp_d.isoformat()
+        if key in self._intraday_cache:
+            self._do_render_sim_popup(self._intraday_cache[key], exp_d)
+        else:
+            threading.Thread(target=self._fetch_sim_popup, args=(exp_d,), daemon=True).start()
+
+    def _fetch_sim_popup(self, exp_d: date):
+        key = exp_d.isoformat()
+        df = load_intraday(exp_d)
+        self._intraday_cache[key] = df
+        self.after(0, lambda: self._do_render_sim_popup(df, exp_d))
+
+    def _do_render_sim_popup(self, df, exp_d: date):
+        if self._sim_popup_target != exp_d:
+            return  # user already moved elsewhere
+        move = self._daily_moves.get(exp_d.isoformat())
+        sign = ("+" if move >= 0 else "") + f"{move:.1f}%" if move is not None else ""
+        col  = "#00cc55" if (move or 0) >= 0 else "#ee3300"
+        date_str = f"{exp_d.strftime('%B')} {exp_d.day}"
+        self._sim_popup_date_lbl.config(
+            text=f"{date_str}  {sign}", fg=col if sign else FG,
+        )
+        self._sim_popup_fig.clear()
+        ax = self._sim_popup_fig.add_axes([0.06, 0.1, 0.91, 0.82])
+        render_intraday(ax, df, exp_d)
+        self._sim_popup_canvas.draw()
+
+    def _schedule_hide_popup(self):
+        if self._sim_hide_job:
+            self.after_cancel(self._sim_hide_job)
+        self._sim_hide_job = self.after(120, self._hide_sim_popup)
+
+    def _hide_sim_popup(self):
+        self._sim_hide_job = None
+        self._sim_popup_target = None
+        self._sim_popup.withdraw()
 
     def _rerender(self):
         if not self._cur or not hasattr(self, "_prerendered"):
