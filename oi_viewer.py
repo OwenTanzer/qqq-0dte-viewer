@@ -587,15 +587,15 @@ def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
             if oi == 0 and not badge:
                 continue
             b = arr[i, 0]
-            txt_col = "#ffffff" if b >= 3 else ("#aaaaaa" if b == 2 else DIM)
+            txt_col = "#000000" if b >= 4 else "#ffffff"
             if oi > 0:
                 ax.text(0, i, fmt_oi(oi),
                         ha="center", va="center",
-                        fontsize=10, color=txt_col, fontweight="bold")
+                        fontsize=14, color=txt_col, fontweight="bold")
             if badge:
                 ax.text(0.44, i, f"#{badge}",
                         ha="right", va="center",
-                        fontsize=8, color="#000000", fontweight="bold")
+                        fontsize=10, color=txt_col, fontweight="bold")
 
         if atm_row is not None:
             ax.axhspan(atm_row - 0.5, atm_row + 0.5,
@@ -624,7 +624,7 @@ def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
         ax_lbl.text(
             0.5, i, sk_str,
             ha="center", va="center",
-            fontsize=10,
+            fontsize=11,
             color="#ffffff" if is_atm else FG,
             fontweight="bold" if is_atm else "normal",
         )
@@ -740,15 +740,15 @@ def _update_render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
             if oi == 0 and not badge:
                 continue
             b = arr[i, 0]
-            txt_col = "#ffffff" if b >= 3 else ("#aaaaaa" if b == 2 else DIM)
+            txt_col = "#000000" if b >= 4 else "#ffffff"
             if oi > 0:
                 ax.text(0, i, fmt_oi(oi),
                         ha="center", va="center",
-                        fontsize=10, color=txt_col, fontweight="bold")
+                        fontsize=14, color=txt_col, fontweight="bold")
             if badge:
                 ax.text(0.44, i, f"#{badge}",
                         ha="right", va="center",
-                        fontsize=8, color="#000000", fontweight="bold")
+                        fontsize=10, color=txt_col, fontweight="bold")
 
         if atm_row is not None:
             ax.axhspan(atm_row - 0.5, atm_row + 0.5,
@@ -761,7 +761,7 @@ def _update_render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
         ax_lbl.text(
             0.5, i, sk_str,
             ha="center", va="center",
-            fontsize=10,
+            fontsize=11,
             color="#ffffff" if is_atm else FG,
             fontweight="bold" if is_atm else "normal",
         )
