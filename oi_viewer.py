@@ -637,10 +637,10 @@ def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
     }
     fig.text(0.5, 0.962,
              f"QQQ Options Chain Expiring {_exp_fmt}, as Captured at 7 PM on {_cap_fmt} (Spot ${spot:.2f})",
-             ha="center", color=FG, fontsize=13, fontweight="bold")
+             ha="center", color=FG, fontsize=16, fontweight="bold")
     fig.text(0.5, 0.940,
              f"[ {_tier_labels.get(tier, tier)} ]",
-             ha="center", color=TIER_COLORS.get(tier, FG), fontsize=10, fontweight="bold")
+             ha="center", color=TIER_COLORS.get(tier, FG), fontsize=12, fontweight="bold")
 
     level_labels = ["< p25", "p25–p50", "p50–p75", "p75–p90", "> p90"]
     c_patches = [mpatches.Patch(facecolor=CALL_COLORS[i+1], edgecolor=BORDER,
