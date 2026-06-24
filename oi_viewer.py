@@ -997,6 +997,7 @@ class OIViewer(tk.Tk):
         self._sim_popup.withdraw()
         self._sim_popup.overrideredirect(True)
         self._sim_popup.configure(bg=PANEL, relief="flat")
+        self._sim_popup.attributes("-topmost", True)
         tk.Frame(self._sim_popup, bg=BORDER, height=1).pack(fill=tk.X)
         _pop_inner = tk.Frame(self._sim_popup, bg=PANEL)
         _pop_inner.pack(fill=tk.BOTH, expand=True)
@@ -1155,12 +1156,12 @@ class OIViewer(tk.Tk):
         # Hidden hover tips — recreated each render since fig is cleared
         self._top5_tip = ax5.text(
             0, 0, "", ha="center", va="bottom", fontsize=14, fontweight="bold",
-            color="#ffffff", zorder=10, visible=False,
+            color="#ffffff", zorder=10, visible=False, clip_on=False,
             bbox=dict(boxstyle="round,pad=0.25", fc=PANEL, ec="#cccccc", alpha=0.95),
         )
         self._daily_tip = ax_daily.text(
-            0, 0, "", ha="center", va="bottom", fontsize=7, fontweight="bold",
-            color=FG, zorder=10, visible=False,
+            0, 0, "", ha="right", va="bottom", fontsize=7, fontweight="bold",
+            color=FG, zorder=10, visible=False, clip_on=False,
             bbox=dict(boxstyle="round,pad=0.3", fc=PANEL, ec=BORDER, alpha=0.97),
         )
         self.canvas_top5.draw()
