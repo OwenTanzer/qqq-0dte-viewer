@@ -395,7 +395,7 @@ def render_intraday(ax: plt.Axes, df: pd.DataFrame | None, exp_date: date | None
         ax.set_xticks([])
     ax.tick_params(axis="x", colors=DIM, length=2, pad=2)
 
-    ax.yaxis.tick_right()
+    ax.yaxis.tick_left()
     ax.yaxis.set_tick_params(labelsize=5.5, colors=DIM, pad=1, length=2)
     ax.yaxis.set_major_locator(plt.MaxNLocator(3, integer=False))
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.0f}"))
