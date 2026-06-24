@@ -15,6 +15,7 @@ a = Analysis(
         'tkcalendar',
         'babel.numbers',
         'matplotlib.backends.backend_tkagg',
+        'pytz',
     ],
     hookspath=[],
     hooksconfig={},
