@@ -1185,7 +1185,15 @@ class OIViewer(tk.Tk):
             dist = ((nearest["x"] - mx) ** 2 + (nearest["y"] - my) ** 2) ** 0.5
             if dist < thr:
                 self._top5_tip.set_text(str(nearest["strike"]))
-                self._top5_tip.set_position((nearest["x"], nearest["y"] + nearest["row_y"] * 0.55))
+                ylim   = ax5.get_ylim()
+                ymid   = (ylim[0] + ylim[1]) / 2
+                offset = nearest["row_y"] * 0.55
+                if nearest["y"] >= ymid:
+                    self._top5_tip.set_position((nearest["x"], nearest["y"] - offset))
+                    self._top5_tip.set_verticalalignment("top")
+                else:
+                    self._top5_tip.set_position((nearest["x"], nearest["y"] + offset))
+                    self._top5_tip.set_verticalalignment("bottom")
                 self._top5_tip.set_color(nearest["edge"])
                 self._top5_tip.set_visible(True)
                 show_top5 = True
