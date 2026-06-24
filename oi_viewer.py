@@ -263,6 +263,83 @@ def fmt_oi(v: int) -> str:
     return f"{v//1000}K"
 
 
+def load_daily_window(exp_date: date, window: int = 2) -> pd.DataFrame | None:
+    """Fetch `window` trading days on each side of exp_date from yfinance."""
+    buf = window * 4
+    start = exp_date - timedelta(days=buf)
+    end   = min(exp_date + timedelta(days=buf), date.today() + timedelta(days=1))
+    try:
+        df = yf.download("QQQ", start=start.isoformat(), end=end.isoformat(),
+                         interval="1d", auto_adjust=True, progress=False)
+        if df.empty:
+            return None
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [c[0] for c in df.columns]
+        df = df.reset_index()
+        date_col = df.columns[0]
+        df[date_col] = pd.to_datetime(df[date_col]).dt.normalize()
+        exp_ts = pd.Timestamp(exp_date)
+        mask = df[date_col] == exp_ts
+        if not mask.any():
+            return None
+        ci = int(df.index[mask][0])
+        return df.iloc[max(0, ci - window): ci + window + 1].reset_index(drop=True)
+    except Exception:
+        return None
+
+
+def render_daily_context(ax: plt.Axes, df: pd.DataFrame | None, exp_date: date | None):
+    ax.set_facecolor(BG)
+    for spine in ax.spines.values():
+        spine.set_edgecolor(BORDER)
+
+    if exp_date is None or df is None or df.empty:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return
+
+    date_col = df.columns[0]
+    opens  = pd.to_numeric(df["Open"],  errors="coerce").values
+    highs  = pd.to_numeric(df["High"],  errors="coerce").values
+    lows   = pd.to_numeric(df["Low"],   errors="coerce").values
+    closes = pd.to_numeric(df["Close"], errors="coerce").values
+
+    n   = len(df)
+    xs  = np.arange(n)
+    up  = closes >= opens
+    exp_ts = pd.Timestamp(exp_date)
+    center = next((i for i, v in enumerate(df[date_col]) if pd.Timestamp(v) == exp_ts), None)
+
+    ax.vlines(xs[ up], lows[ up], highs[ up], color="#00cc55", linewidth=0.8, zorder=2)
+    ax.vlines(xs[~up], lows[~up], highs[~up], color="#ee3300", linewidth=0.8, zorder=2)
+
+    for i in xs:
+        o, c = opens[i], closes[i]
+        alpha = 1.0 if i == center else 0.4
+        ax.add_patch(mpatches.Rectangle(
+            (i - 0.35, min(o, c)), 0.7, max(abs(c - o), 0.05),
+            color=("#00cc55" if c >= o else "#ee3300"), alpha=alpha, zorder=3,
+        ))
+    if center is not None:
+        o, c = opens[center], closes[center]
+        ax.add_patch(mpatches.Rectangle(
+            (center - 0.38, min(o, c) - 0.03), 0.76, max(abs(c - o), 0.05) + 0.06,
+            fill=False, edgecolor="#cccccc", linewidth=0.7, zorder=5,
+        ))
+
+    price_lo, price_hi = np.nanmin(lows), np.nanmax(highs)
+    pad = (price_hi - price_lo) * 0.15 or 1.0
+    ax.set_xlim(-0.6, n - 0.4)
+    ax.set_ylim(price_lo - pad, price_hi + pad)
+
+    labels = [f"{pd.Timestamp(v).month}/{pd.Timestamp(v).day}" for v in df[date_col]]
+    ax.set_xticks(xs)
+    ax.set_xticklabels(labels, fontsize=4.8, color=DIM)
+    ax.tick_params(axis="x", colors=DIM, length=2, pad=1)
+    ax.set_yticks([])
+    ax.set_title("Daily", color=DIM, fontsize=6, pad=2)
+
+
 def render_intraday(ax: plt.Axes, df: pd.DataFrame | None, exp_date: date | None):
     ax.set_facecolor(BG)
     for spine in ax.spines.values():
@@ -900,13 +977,20 @@ class OIViewer(tk.Tk):
             render_top5(ax5, df, exp_str, spot5, compact=True)
             self.canvas_top5.draw()
 
-        # Intraday: show price series for the expiry date; blank panel if it's still in the future.
-        intraday_df = load_intraday(d) if d <= date.today() else None
+        # Price panel: intraday 5-min bars (left) + daily context candles (right).
+        # Both keyed on the expiry date; blank if the expiry is still in the future.
         exp_date_for_panel = d if d <= date.today() else None
+        intraday_df = load_intraday(d) if exp_date_for_panel is not None else None
+        daily_df    = load_daily_window(d) if exp_date_for_panel is not None else None
         self.fig_price.clear()
-        self.fig_price.subplots_adjust(left=0.04, right=0.80, top=0.88, bottom=0.22)
-        ax_id = self.fig_price.add_subplot(111)
+        gs = self.fig_price.add_gridspec(
+            1, 2, width_ratios=[3, 2],
+            left=0.04, right=0.97, top=0.88, bottom=0.22, wspace=0.38,
+        )
+        ax_id    = self.fig_price.add_subplot(gs[0])
+        ax_daily = self.fig_price.add_subplot(gs[1])
         render_intraday(ax_id, intraday_df, exp_date_for_panel)
+        render_daily_context(ax_daily, daily_df, exp_date_for_panel)
         self.canvas_price.draw()
 
     def _rerender(self):
