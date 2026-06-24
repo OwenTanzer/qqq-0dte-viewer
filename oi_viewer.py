@@ -921,7 +921,7 @@ class OIViewer(tk.Tk):
             bordercolor=BORDER,
             font=("Segoe UI", 9),
         )
-        self.cal.pack(fill=tk.X, pady=(0, 4))
+        self.cal.pack(fill=tk.X, pady=(0, 2))
 
         for d in self.avail:
             try:
@@ -941,29 +941,29 @@ class OIViewer(tk.Tk):
             font=("Segoe UI", 10, "bold"),
             relief="flat", padx=8, pady=5,
             cursor="hand2",
-        ).pack(fill=tk.X, pady=(0, 6))
+        ).pack(fill=tk.X, pady=(0, 3))
 
-        self.fig_price = plt.Figure(figsize=(3.0, 2.0), facecolor=BG)
+        self.fig_price = plt.Figure(figsize=(3.0, 1.8), facecolor=BG)
         self.canvas_price = FigureCanvasTkAgg(self.fig_price, master=left)
-        self.canvas_price.get_tk_widget().pack(fill=tk.X, pady=(6, 0))
+        self.canvas_price.get_tk_widget().pack(fill=tk.X, pady=(3, 0))
 
-        self.fig_top5 = plt.Figure(figsize=(3.0, 1.8), facecolor=BG)
+        self.fig_top5 = plt.Figure(figsize=(3.0, 1.5), facecolor=BG)
         self.canvas_top5 = FigureCanvasTkAgg(self.fig_top5, master=left)
-        self.canvas_top5.get_tk_widget().pack(fill=tk.X, pady=(4, 0))
+        self.canvas_top5.get_tk_widget().pack(fill=tk.X, pady=(2, 0))
 
         # Similarity panel
         sim_frame = tk.Frame(left, bg=PANEL, highlightthickness=1,
                              highlightbackground=BORDER)
-        sim_frame.pack(fill=tk.X, pady=(8, 0))
+        sim_frame.pack(fill=tk.X, pady=(4, 0))
         tk.Label(sim_frame, text="Similar Sessions", bg=PANEL, fg=FG,
-                 font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=6, pady=(5, 1))
+                 font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=6, pady=(4, 0))
         self._sim_status = tk.Label(sim_frame, text="Building index…", bg=PANEL,
                                     fg=DIM, font=("Segoe UI", 7))
-        self._sim_status.pack(anchor="w", padx=6, pady=(0, 3))
+        self._sim_status.pack(anchor="w", padx=6, pady=(0, 2))
         self._sim_rows = []
         for _ in range(5):
             row = tk.Frame(sim_frame, bg=PANEL)
-            row.pack(fill=tk.X, padx=6, pady=1)
+            row.pack(fill=tk.X, padx=6, pady=0)
             date_lbl  = tk.Label(row, text="", bg=PANEL, fg="#4dff9a",
                                  font=("Segoe UI", 8, "bold"), cursor="hand2")
             date_lbl.pack(side=tk.LEFT)
@@ -971,7 +971,7 @@ class OIViewer(tk.Tk):
                                  font=("Segoe UI", 7))
             score_lbl.pack(side=tk.RIGHT)
             self._sim_rows.append((date_lbl, score_lbl))
-        tk.Frame(sim_frame, bg=PANEL, height=4).pack()
+        tk.Frame(sim_frame, bg=PANEL, height=3).pack()
 
         right = tk.Frame(self, bg=BG)
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True,
