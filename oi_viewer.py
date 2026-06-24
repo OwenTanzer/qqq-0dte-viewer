@@ -419,6 +419,15 @@ def render_daily_context(ax: plt.Axes, df: pd.DataFrame | None, exp_date: date |
     ax.set_yticks([])
     ax.set_title("Daily", color=DIM, fontsize=8, pad=2)
 
+    candles = []
+    for i in xs:
+        ts = pd.Timestamp(df[date_col].iloc[i])
+        o, h, l, c = opens[i], highs[i], lows[i], closes[i]
+        pct = (c - o) / o * 100 if o else 0.0
+        candles.append({"x": int(i), "date": f"{ts.strftime('%b')} {ts.day}",
+                        "o": o, "h": h, "l": l, "c": c, "pct": pct})
+    return candles
+
 
 def render_intraday(ax: plt.Axes, df: pd.DataFrame | None, exp_date: date | None):
     ax.set_facecolor(BG)
@@ -557,6 +566,7 @@ def render_top5(ax: plt.Axes, df: pd.DataFrame, exp_str: str, spot: float,
         t = (oi - min_oi) / (max_oi - min_oi)
         return s_min + t * (s_max - s_min)
 
+    bubbles = []
     for p in placed:
         x   = p["x"]
         y   = p["bump"] * row_y
@@ -569,8 +579,10 @@ def render_top5(ax: plt.Axes, df: pd.DataFrame, exp_str: str, spot: float,
         ax.text(x, y, str(p["rank"]),
                 ha="center", va="center",
                 fontsize=rank_fs, fontweight="bold", color=edge, zorder=4)
-        ax.text(x, y + lbl_off, str(int(round(float(p["Strike"])))),
-                ha="center", va="top", fontsize=label_fs, color=FG, zorder=4)
+        bubbles.append({"x": x, "y": y, "row_y": row_y,
+                        "strike": int(round(float(p["Strike"]))),
+                        "oi": p["OI"], "type": p["Type"], "edge": edge})
+    return bubbles
 
 
 def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
@@ -951,6 +963,7 @@ class OIViewer(tk.Tk):
         self.fig_top5 = plt.Figure(figsize=(3.0, 1.3), facecolor=BG)
         self.canvas_top5 = FigureCanvasTkAgg(self.fig_top5, master=left)
         self.canvas_top5.get_tk_widget().pack(fill=tk.X, pady=(2, 0))
+        self.canvas_top5.mpl_connect("motion_notify_event", self._on_top5_hover)
 
         # Similarity panel
         sim_frame = tk.Frame(left, bg=PANEL, highlightthickness=1,
@@ -1109,10 +1122,76 @@ class OIViewer(tk.Tk):
         )
         ax5     = self.fig_top5.add_subplot(gs5[0])
         ax_daily = self.fig_top5.add_subplot(gs5[1])
+        self._top5_bubbles: list = []
+        self._daily_candles: list = []
         if spot5 is not None:
-            render_top5(ax5, df, exp_str, spot5, compact=True)
-        render_daily_context(ax_daily, daily_df, exp_date_for_panel)
+            self._top5_bubbles = render_top5(ax5, df, exp_str, spot5, compact=True) or []
+        daily_candles = render_daily_context(ax_daily, daily_df, exp_date_for_panel)
+        if daily_candles:
+            self._daily_candles = daily_candles
+
+        # Hidden hover tips — recreated each render since fig is cleared
+        self._top5_tip = ax5.text(
+            0, 0, "", ha="center", va="bottom", fontsize=14, fontweight="bold",
+            color="#ffffff", zorder=10, visible=False,
+            bbox=dict(boxstyle="round,pad=0.25", fc=PANEL, ec="#cccccc", alpha=0.95),
+        )
+        self._daily_tip = ax_daily.text(
+            0, 0, "", ha="center", va="bottom", fontsize=7, fontweight="bold",
+            color=FG, zorder=10, visible=False,
+            bbox=dict(boxstyle="round,pad=0.3", fc=PANEL, ec=BORDER, alpha=0.97),
+        )
         self.canvas_top5.draw()
+
+    def _on_top5_hover(self, event):
+        if not hasattr(self, "_top5_tip"):
+            return
+        axes = self.fig_top5.get_axes()
+        ax5     = axes[0] if len(axes) > 0 else None
+        ax_daily = axes[1] if len(axes) > 1 else None
+        redraw = False
+
+        # Top-5 bubbles
+        show_top5 = False
+        if ax5 and event.inaxes == ax5 and self._top5_bubbles and event.xdata is not None:
+            mx, my = event.xdata, event.ydata
+            xlim = ax5.get_xlim()
+            thr  = (xlim[1] - xlim[0]) * 0.12
+            nearest = min(self._top5_bubbles,
+                          key=lambda b: (b["x"] - mx) ** 2 + (b["y"] - my) ** 2)
+            dist = ((nearest["x"] - mx) ** 2 + (nearest["y"] - my) ** 2) ** 0.5
+            if dist < thr:
+                self._top5_tip.set_text(str(nearest["strike"]))
+                self._top5_tip.set_position((nearest["x"], nearest["y"] + nearest["row_y"] * 0.55))
+                self._top5_tip.set_color(nearest["edge"])
+                self._top5_tip.set_visible(True)
+                show_top5 = True
+        if not show_top5:
+            self._top5_tip.set_visible(False)
+
+        # Daily candles
+        show_daily = False
+        if ax_daily and event.inaxes == ax_daily and self._daily_candles and event.xdata is not None:
+            xi = int(round(event.xdata))
+            row = next((c for c in self._daily_candles if c["x"] == xi), None)
+            if row:
+                sign = "+" if row["pct"] >= 0 else ""
+                pct_col = "#00cc55" if row["pct"] >= 0 else "#ee3300"
+                text = (f"{row['date']}\n"
+                        f"O {row['o']:.0f}  H {row['h']:.0f}\n"
+                        f"L {row['l']:.0f}  C {row['c']:.0f}\n"
+                        f"{sign}{row['pct']:.1f}%")
+                ylim = ax_daily.get_ylim()
+                tip_y = ylim[0] + (ylim[1] - ylim[0]) * 0.55
+                self._daily_tip.set_text(text)
+                self._daily_tip.set_position((xi, tip_y))
+                self._daily_tip.get_bbox_patch().set_edgecolor(pct_col)
+                self._daily_tip.set_visible(True)
+                show_daily = True
+        if not show_daily:
+            self._daily_tip.set_visible(False)
+
+        self.canvas_top5.draw_idle()
 
     def _run_bootstrap(self):
         caps   = sorted(self._expiry_capture.values())
