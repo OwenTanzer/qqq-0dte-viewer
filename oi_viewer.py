@@ -629,14 +629,14 @@ def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
 
     _exp_d  = date.fromisoformat(exp_str)
     _exp_fmt = f"{_exp_d.strftime('%b')} {_exp_d.day}"
-    _cap_fmt = f"{trade_date.month}/{trade_date.day}/{trade_date.year}"
+    _cap_fmt = f"{trade_date.month}/{trade_date.day}"
     _tier_labels = {
         "0DTE_Regular": "Regular Trading Day",
         "0DTE_Weekly":  "Weekly Expiration",
         "0DTE_Monthly": "Monthly Expiration",
     }
     fig.text(0.5, 0.962,
-             f"QQQ Options Chain Expiring {_exp_fmt}, as Captured at 7 PM on {_cap_fmt} (Spot ${spot:.2f})",
+             f"QQQ Options Exp. {_exp_fmt}  ·  Captured {_cap_fmt} at 7 PM  ·  Spot ${spot:.2f}",
              ha="center", color=FG, fontsize=16, fontweight="bold")
     fig.text(0.5, 0.940,
              f"[ {_tier_labels.get(tier, tier)} ]",
