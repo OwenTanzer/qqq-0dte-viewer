@@ -1205,6 +1205,10 @@ class OIViewer(tk.Tk):
                         f"{sign}{row['pct']:.1f}%")
                 ylim = ax_daily.get_ylim()
                 tip_y = ylim[0] + (ylim[1] - ylim[0]) * 0.55
+                # Flip anchor left/right so box stays inside the figure
+                n = len(self._daily_candles)
+                ha = "right" if n > 0 and xi >= n // 2 else "left"
+                self._daily_tip.set_horizontalalignment(ha)
                 self._daily_tip.set_text(text)
                 self._daily_tip.set_position((xi, tip_y))
                 self._daily_tip.get_bbox_patch().set_edgecolor(pct_col)
@@ -1311,9 +1315,15 @@ class OIViewer(tk.Tk):
                 color=DIM, fontsize=8, transform=ax.transAxes)
         self._sim_popup_canvas.draw()
 
-        # Position popup just to the right of the sidebar
+        # Position popup just to the right of the sidebar, clamped to screen
+        popup_h = 140  # label + figure + borders (estimate)
+        popup_w = 210
         sx = self.winfo_rootx() + 322
         sy = event.widget.winfo_rooty() - 30
+        screen_h = self.winfo_screenheight()
+        screen_w = self.winfo_screenwidth()
+        sy = max(10, min(sy, screen_h - popup_h - 10))
+        sx = max(10, min(sx, screen_w - popup_w - 10))
         self._sim_popup.geometry(f"+{sx}+{sy}")
         self._sim_popup.deiconify()
         self._sim_popup.lift()
