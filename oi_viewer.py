@@ -88,8 +88,8 @@ PUT_COLORS = [
     "#ffaa88",   # 5  > p90  ("wall")
 ]
 
-TOP5_CALL_EDGE = "#4a9eff"
-TOP5_CALL_FILL = "#0a1f3d"
+TOP5_CALL_EDGE = "#00cc55"
+TOP5_CALL_FILL = "#0f3d22"
 TOP5_PUT_EDGE  = "#ff7043"
 TOP5_PUT_FILL  = "#3d0f08"
 
