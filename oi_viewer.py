@@ -335,8 +335,8 @@ class SimilarityIndex:
             if key not in self._vecs:
                 df = load_day(cap)
                 if df is not None:
-                    exp_str = next_trading_day(cap).isoformat()
-                    tier    = classify_tier(cap)
+                    exp_str = cap.isoformat()
+                    tier    = classify_tier(prior_trading_day(cap))
                     vec     = build_feature_vector(df, exp_str, tier, ranges)
                     if vec is not None:
                         self._vecs[key] = vec.tolist()
@@ -731,7 +731,7 @@ def render(fig: plt.Figure, trade_date: date, df: pd.DataFrame,
         "0DTE_Monthly": "Monthly Expiration",
     }
     fig.text(0.5, 0.962,
-             f"QQQ Options Exp. {_exp_fmt}  ·  Captured {_cap_fmt} at 7 PM  ·  Spot ${spot:.2f}",
+             f"QQQ Options Exp. {_exp_fmt}  ·  Captured {_cap_fmt} at 4 PM  ·  Spot ${spot:.2f}",
              ha="center", color=FG, fontsize=16, fontweight="bold")
     fig.text(0.5, 0.940,
              f"[ {_tier_labels.get(tier, tier)} ]",
@@ -890,10 +890,11 @@ class OIViewer(tk.Tk):
         _bootstrap(sorted_captures[0] - timedelta(days=5),
                    sorted_captures[-1] + timedelta(days=60))
 
-        # Key structural choice: the UI is indexed by expiry date, not capture date.
-        # Each chain is keyed by the date the session traded, not the date it was captured.
+        # Key structural choice: the UI is indexed by expiry date.
+        # Chain files are named qqq_chain_{D}.csv where D is the expiry date itself
+        # (captured at 4 PM ET on D — post D-1 OCC settlement, pre-trading noise).
         self._expiry_capture: dict[date, date] = {
-            next_trading_day(c): c for c in capture_dates
+            c: c for c in capture_dates
         }
         self.avail = set(self._expiry_capture.keys())
 
@@ -1094,7 +1095,7 @@ class OIViewer(tk.Tk):
         return frames
 
     def show_date(self, d: date):
-        """d is the expiry date (session date). Load the chain captured the prior day."""
+        """d is the expiry date. Load qqq_chain_{D}.csv — EOD snapshot on D itself (D-1 settlement OI)."""
         self._loading_label.config(text="⠋  Fetching data...")
         self._loading_label.place(relx=0.5, rely=0.5, anchor="center")
         self.update_idletasks()
@@ -1108,7 +1109,7 @@ class OIViewer(tk.Tk):
             self._loading_label.place_forget()
             return
         exp_str = d.isoformat()
-        tier = classify_tier(capture)
+        tier = classify_tier(prior_trading_day(capture))
         self._cur = {"d": capture, "df": df, "exp_str": exp_str, "tier": tier}
         self.scroll_offset = 0
         self.scroll_scale.set(0)
@@ -1276,9 +1277,9 @@ class OIViewer(tk.Tk):
         for i, (row, date_lbl, score_lbl, move_lbl) in enumerate(self._sim_rows):
             if i < len(matches):
                 cap_d, score = matches[i]
-                exp_d = next_trading_day(cap_d)
+                exp_d = cap_d
                 label = f"{exp_d.strftime('%b')} {exp_d.day}"
-                col   = TIER_COLORS.get(classify_tier(cap_d), "#4dff9a")
+                col   = TIER_COLORS.get(classify_tier(prior_trading_day(cap_d)), "#4dff9a")
                 date_lbl.config(text=label, fg=col)
                 score_lbl.config(text=f"{score:.3f}")
                 date_lbl.bind("<Button-1>", lambda e, d=exp_d: self.show_date(d))
